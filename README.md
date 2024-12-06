@@ -9,7 +9,7 @@ Linux性能测试 FastBench 一键脚本 Linux跑分 小白跑分
 ## 一键执行
 
 ```sh
-wget -N  http://raw.githubusercontent.com/sshpc/initsh/main/init.sh && chmod +x init.sh && sudo ./init.sh
+wget -N  http://raw.githubusercontent.com/sshpc/FastBench/main/FastBench.sh && chmod +x FastBench.sh && sudo ./FastBench.sh
 ```
 
 ## 示例
