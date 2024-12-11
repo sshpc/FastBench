@@ -39,6 +39,21 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
+environmentaltest(){
+  #检查关键程序是否存在
+  commands=("bc" "awk" "pkill" "dd" "lsblk")
+  pass=1
+  for command in "${commands[@]}"; do
+      if ! command -v "$command" >/dev/null 2>&1; then
+          _red "$command 命令不存在,请自行安装"
+          pass=0
+      fi
+  done
+  if [[ "$pass" == 0 ]]; then
+    exit 0
+  fi
+}
+
 #CPU测试
 
 cpu_model=$(grep "model name" /proc/cpuinfo | head -1 | awk -F': ' '{print $2}')
@@ -204,7 +219,8 @@ disktest() {
 
   if [ ${#disk_devices[@]} -eq 0 ]; then
     echo "未找到磁盘设备"
-    exit 1
+    disk_score=0
+    return 0
   fi
 
   # 选择第一个磁盘设备进行测试
@@ -215,12 +231,17 @@ disktest() {
   disk_time=$(echo "$end_time_disk - $start_time_disk" | bc)
   disk_speed=$(echo "scale=2; (4096 / $disk_time)" | bc)
   disk_score=$(echo "scale=2; $disk_speed * 80" | bc)
+
+  
   disk_score=$(awk '{print int($1)}' <<< "$disk_score")
   echo "磁盘读取速度：$disk_speed Mb/s 得分：$disk_score"
   echo
 }
 
 # 主程序
+
+#检查环境
+environmentaltest
 
 echo
 _green "CPU 型号：$cpu_model"
@@ -255,3 +276,6 @@ echo "内存分数：$mem_read_score"
 echo "硬盘分数：$disk_score"
 _blue "总分：   $total_score"
 echo "=================================================="
+
+
+
