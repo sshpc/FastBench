@@ -1,5 +1,5 @@
 #!/bin/bash
-# Linux性能测试 FastBench 小白跑分一键脚本
+# FastBench跑分 Linux性能测试一键脚本
 # Author:SSHPC <https://github.com/sshpc>
 #字体颜色定义
 _red() {
@@ -19,39 +19,27 @@ _blue() {
   echo
 }
 
-#字符跳动 (参数：字符串 间隔时间s，默认为0.1秒)
-jumpfun() {
-  my_string=$1
-  delay=${2:-0.1}
-  # 循环输出每个字符
-  for ((i = 0; i < ${#my_string}; i++)); do
-    printf '\033[0;31;36m%b\033[0m' "${my_string:$i:1}"
-    sleep "$delay"
-  done
-  echo
-}
-
-# 退出脚本时清理所有子进程
-cleanup() {
-  #echo "清理测试进程..."
-  pkill -P $$
-  exit 1
-}
-trap cleanup INT TERM EXIT
-
-environmentaltest(){
+environmentaltest() {
   #检查关键程序是否存在
   commands=("bc" "awk" "pkill" "dd" "lsblk")
   pass=1
   for command in "${commands[@]}"; do
-      if ! command -v "$command" >/dev/null 2>&1; then
-          _red "$command 命令不存在,请自行安装"
-          pass=0
-      fi
+    if ! command -v "$command" >/dev/null 2>&1; then
+      _red "$command 命令不存在,请自行安装"
+      pass=0
+    fi
   done
   if [[ "$pass" == 0 ]]; then
     exit 0
   fi
+
+  # 退出脚本时清理所有子进程
+  cleanup() {
+    pkill -P $$
+    exit 1
+  }
+  trap cleanup INT TERM EXIT
+
 }
 
 #CPU测试
@@ -67,7 +55,7 @@ multi_core_score=0
 # 测试时间（秒）
 test_duration=5
 
-# 定义整数计算
+# 定义整数运算
 integer_test() {
   local iterations=0
   local start_time=$(date +%s)
@@ -79,7 +67,7 @@ integer_test() {
   echo $iterations
 }
 
-# 定义浮点计算
+# 定义浮点运算
 float_test() {
   local iterations=0
   local start_time=$(date +%s)
@@ -91,7 +79,7 @@ float_test() {
   echo $iterations
 }
 
-# 定义累加计算
+# 定义累加运算
 accumulation_test() {
   local iterations=0
   local sum=0
@@ -106,18 +94,18 @@ accumulation_test() {
 
 # 单核测试
 single_core_test() {
-  jumpfun " 1.1 单核测试..."
+  _blue "-> 正在进行单核测试..."
   int_single=$(integer_test)
   float_single=$(float_test)
   accum_single=$(accumulation_test)
   single_core_score=$((int_single + float_single + accum_single))
-  echo " 单核测试完成：整数计算=$int_single，浮点计算=$float_single，累加计算=$accum_single，合计=$single_core_score"
-  echo
+  echo "单核测试完成：整数运算=$int_single, 浮点运算=$float_single, 累加运算=$accum_single, 单核得分=$single_core_score"
+
 }
 
 # 多核测试
 multi_core_test() {
-  jumpfun " 1.2 多核测试..."
+  _blue "-> 正在进行多核测试..."
   local total_int=0
   local total_float=0
   local total_accum=0
@@ -168,14 +156,14 @@ multi_core_test() {
   rm -rf "$results_dir"
 
   multi_core_score=$((total_int + total_float + total_accum))
-  echo " 多核测试完成：整数计算=$total_int，浮点计算=$total_float，累加计算=$total_accum，合计=$multi_core_score"
-  echo
+  echo "多核测试完成：整数运算=$total_int, 浮点运算=$total_float, 累加运算=$total_accum, 多核得分=$multi_core_score"
+
 }
 
 #内存测试
 memtest() {
 
-  jumpfun "2.内存测试..."
+  _blue "2. 内存读取测试..."
 
   # 参数设置
   mem_size=1024 # 每次测试的数据块大小（MB）
@@ -188,19 +176,18 @@ memtest() {
   done
   end_time_mem=$(date +%s.%N)
 
-  # 计算内存读取性能
+  # 运算内存读取性能
   mem_read_time=$(echo "$end_time_mem - $start_time_mem" | bc)
   total_size=$(echo "$mem_size * $num_loops" | bc)                      # 总操作数据量
   mem_read_speed=$(echo "scale=2; ($total_size / $mem_read_time)" | bc) # 每秒读取MB
-  mem_read_score=$(echo "scale=2; $mem_read_speed * 4" | bc)
-  mem_read_score=$(awk '{print int($1)}' <<< "$mem_read_score")
+  mem_read_score=$(echo "scale=2; $mem_read_speed * 2" | bc)
+  mem_read_score=$(awk '{print int($1)}' <<<"$mem_read_score")
   echo "内存读取速度：$mem_read_speed MB/s 得分：$mem_read_score"
-  echo
 }
 
 #磁盘测试
 disktest() {
-  jumpfun "3.磁盘测试..."
+  _blue "3. 磁盘读取测试..."
   # 获取所有块设备的详细信息
   disk_info=$(lsblk -o NAME,RM,TYPE)
   disk_devices=()
@@ -232,8 +219,7 @@ disktest() {
   disk_speed=$(echo "scale=2; (4096 / $disk_time)" | bc)
   disk_score=$(echo "scale=2; $disk_speed * 80" | bc)
 
-  
-  disk_score=$(awk '{print int($1)}' <<< "$disk_score")
+  disk_score=$(awk '{print int($1)}' <<<"$disk_score")
   echo "磁盘读取速度：$disk_speed Mb/s 得分：$disk_score"
   echo
 }
@@ -242,6 +228,13 @@ disktest() {
 
 #检查环境
 environmentaltest
+
+echo
+_blue " _____         _   ____                  _     "
+_blue "|  ___|_ _ ___| |_| __ )  ___ _ __   ___| |__  "
+_blue "| |_ / _\` / __| __|  _ \ / _ \ '_ \ / __| '_ \ "
+_blue "|  _| (_| \__ \ |_| |_) |  __/ | | | (__| | | |"
+_blue "|_|  \__,_|___/\__|____/ \___|_| |_|\___|_| |_|"
 
 echo
 _green "CPU 型号：$cpu_model"
@@ -265,17 +258,9 @@ disktest
 total_score=$((cpu_total_score + mem_read_score + disk_score))
 
 # 展示结果
-echo "==================== 测试结果 ===================="
-_green "CPU 型号：$cpu_model"
-_green "CPU 主频：$cpu_freq MHz"
-_green "CPU 核心数：$cpu_cores"
-echo "单核得分：$single_core_score"
-echo "多核得分：$multi_core_adjusted"
-echo "CPU 分数：$cpu_total_score"
-echo "内存分数：$mem_read_score"
-echo "硬盘分数：$disk_score"
-_blue "总分：   $total_score"
-echo "=================================================="
-
-
-
+_yellow "==================== 测试结果 ===================="
+echo "CPU 得分：$cpu_total_score (单核：$single_core_score 多核：$multi_core_adjusted)"
+echo "内存得分：$mem_read_score"
+echo "硬盘得分：$disk_score"
+_green "总分数： $total_score"
+_yellow "=================================================="
