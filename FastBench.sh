@@ -167,7 +167,7 @@ memtest() {
 
   # 参数设置
   mem_size=1024 # 每次测试的数据块大小（MB）
-  num_loops=20  # 循环次数
+  num_loops=100  # 循环次数
 
   # 开始测试内存读取速度
   start_time_mem=$(date +%s.%N)
